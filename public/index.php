@@ -39,5 +39,12 @@ $app->get('/', function ($request, $response) {
     return $this->get('renderer')->render($response, 'main.phtml');
 })->setName('main');
 
+$app->get('/urls', function ($request, $response) {
+    return $this->get('renderer')->render($response, 'urls.phtml');
+})->setName('urls');
+
+$app->get('/urls/{id:[0-9]+}', function ($request, $response) {
+    return $this->get('renderer')->render($response, 'show.phtml');
+})->setName('show');
 
 $app->run();
