@@ -35,13 +35,9 @@
                 <p class="lead">Бесплатно проверяйте сайты на SEO пригодность</p>
                 <form action="/urls" method="post" class="row" required>
                     <div class="col-8">
-                        <input
-                                type="text"
-                                name="url[name]"
-                                value=""
-                                class="form-control form-control-lg"
-                                placeholder="https://www.example.com"
-                        >
+                        <label>
+                            <input type="text" name="url[name]" value="" class="form-control form-control-lg" placeholder="https://www.example.com">
+                        </label>
                     </div>
                     <div class="col-2">
                         <input type="submit" class="btn btn-primary btn-lg ms-3 px-5 text-uppercase mx-3" value="Проверить">
