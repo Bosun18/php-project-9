@@ -23,12 +23,21 @@ if (file_exists($autoloadPath1)) {
     require_once $autoloadPath2;
 }
 
-$app = AppFactory::create();
+$container = new Container();
+$container->set('renderer', function () {
+    // Параметром передается базовая директория, в которой будут храниться шаблоны
+    return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
+});
+
+$app = AppFactory::createFromContainer($container);
+$app->addErrorMiddleware(true, true, true);
+$app->add(MethodOverrideMiddleware::class);
+$router = $app->getRouteCollector()->getRouteParser();
 
 // Обработчик
 $app->get('/', function ($request, $response) {
-    return $response->write('Welcome to Page Analyzer!');
-});
+    return $this->get('renderer')->render($response, 'main.phtml');
+})->setName('main');
 
 
 $app->run();
