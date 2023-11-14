@@ -36,7 +36,10 @@
                 <form action="/urls" method="post" class="row" required>
                     <div class="col-8">
                         <label>
-                            <input type="text" name="url[name]" value="" class="form-control form-control-lg" placeholder="https://www.example.com">
+                            <input type="text" name="url[name]" value="<?= htmlspecialchars($url['name'] ?? '') ?>" class="form-control form-control-lg <?= $isInvalid ?? '' ?>" placeholder="https://www.example.com">
+                            <?php if (!empty($errors['name'])) : ?>
+                                <div class="invalid-feedback mb-3"><?= $errors['name'][0] ?></div>
+                            <?php endif ?>
                         </label>
                     </div>
                     <div class="col-2">
