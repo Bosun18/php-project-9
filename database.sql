@@ -8,8 +8,8 @@ CREATE TABLE url_checks (
     id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     url_id bigint REFERENCES urls (id),
     status_code int,
-    h1 text,
-    title text,
+    h1 varchar,
+    title varchar,
     description text,
     created_at timestamp
     );
