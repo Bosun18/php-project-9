@@ -32,8 +32,7 @@ $container->set('flash', function () {
     return new \Slim\Flash\Messages();
 });
 $container->set('pdo', function () {
-    $pdo = Database::get()->connect();
-    return $pdo;
+    return Database::get()->connect();
 });
 
 $app = AppFactory::createFromContainer($container);
