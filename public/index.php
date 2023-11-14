@@ -28,6 +28,13 @@ $container->set('renderer', function () {
     // Параметром передается базовая директория, в которой будут храниться шаблоны
     return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
 });
+$container->set('flash', function () {
+    return new \Slim\Flash\Messages();
+});
+$container->set('pdo', function () {
+    $pdo = Database::get()->connect();
+    return $pdo;
+});
 
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
@@ -36,6 +43,20 @@ $router = $app->getRouteCollector()->getRouteParser();
 
 // Обработчик
 $app->get('/', function ($request, $response) {
+    $this->get('pdo')->exec("CREATE TABLE urls (
+                id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                name varchar(255) NOT NULL UNIQUE,
+                created_at timestamp
+            );");
+    $this->get('pdo')->exec("CREATE TABLE url_checks (
+                id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                url_id bigint REFERENCES urls (id),
+                status_code int,
+                h1 text,
+                title text,
+                description text,
+                created_at timestamp
+            );");
     return $this->get('renderer')->render($response, 'main.phtml');
 })->setName('main');
 
