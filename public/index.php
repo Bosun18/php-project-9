@@ -3,11 +3,12 @@
 use Slim\Factory\AppFactory;
 use DI\Container;
 use Slim\Middleware\MethodOverrideMiddleware;
-use Slim\Flash;
+use Slim\Flash\Messages;
 use Carbon\Carbon;
 use Valitron\Validator;
 use Bosun\PhpProject9\Database;
 use GuzzleHttp\Client;
+use Slim\Views\PhpRenderer;
 use GuzzleHttp\Exception\TransferException;
 use DiDom\Document;
 use Illuminate\Support;
@@ -28,10 +29,10 @@ if (file_exists($autoloadPath1)) {
 $container = new Container();
 $container->set('renderer', function () {
     // Параметром передается базовая директория, в которой будут храниться шаблоны
-    return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
+    return new PhpRenderer(__DIR__ . '/../templates');
 });
 $container->set('flash', function () {
-    return new \Slim\Flash\Messages();
+    return new Messages();
 });
 $container->set('pdo', function () {
     return Database::get()->connect();
