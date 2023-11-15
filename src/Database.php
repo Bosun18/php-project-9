@@ -32,7 +32,7 @@ class Database
         return $pdo;
     }
 
-    public static function get()
+    public static function get(): ?Database
     {
         if (static::$connection === null) {
             static::$connection = new self();

@@ -36,6 +36,9 @@ $container->set('flash', function () {
 $container->set('pdo', function () {
     return Database::get()->connect();
 });
+$container->set('client', function () {
+    return new Client();
+});
 
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
