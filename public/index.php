@@ -12,6 +12,8 @@ use GuzzleHttp\Exception\TransferException;
 use DiDom\Document;
 use Illuminate\Support;
 
+session_start();
+
 // Путь который будет использован при глобальной установке пакета
 $autoloadPath1 = __DIR__ . '/../../../autoload.php';
 // Путь для локальной работы с проектом
@@ -58,6 +60,54 @@ $app->get('/', function ($request, $response) {
             );");
     return $this->get('renderer')->render($response, 'main.phtml');
 })->setName('main');
+
+$app->post('/urls', function ($request, $response) use ($router) {
+    $rawData = (array)$request->getParsedBody();
+    $validator = new Validator($rawData['url']);
+    $validator->rule('required', 'name')->message('URL не должен быть пустым')
+        ->rule('url', 'name')->message('Некорректный URL')
+        ->rule('lengthMax', 'name', 255)->message('Некорректный URL');
+
+    if (!($validator->validate())) {
+        $errors = $validator->errors();
+        $params = [
+            'url' => $rawData['url'],
+            'errors' => $errors,
+            'isInvalid' => 'is-invalid',
+        ];
+
+        return $this->get('renderer')->render($response->withStatus(422), 'main.phtml', $params);
+    }
+
+    try {
+        $pdo = $this->get('pdo');
+
+        $urlString = strtolower($rawData['url']['name']);
+        $parsedUrl = parse_url($urlString);
+        $name = "{$parsedUrl['scheme']}://{$parsedUrl['host']}";
+        $createdAt = Carbon::now();
+
+        $query = "SELECT name FROM urls WHERE name = '{$name}'";
+        $existedUrl = $pdo->query($query)->fetchAll();
+
+        if (count($existedUrl) > 0) {
+            $query = "SELECT id FROM urls WHERE name = '{$name}'";
+            $existedUrlId = (string)($pdo->query($query)->fetchColumn());
+
+            $this->get('flash')->addMessage('success', 'Страница уже существует');
+            return $response->withRedirect($router->urlFor('show', ['id' => $existedUrlId]));
+        }
+
+        $query = "INSERT INTO urls (name, created_at) VALUES ('{$name}', '{$createdAt}')";
+        $pdo->exec($query);
+        $lastId = $pdo->lastInsertId();
+
+        $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
+        return $response->withRedirect($router->urlFor('show', ['id' => $lastId]));
+    } catch (\PDOException $e) {
+        echo $e->getMessage();
+    }
+});
 
 $app->get('/urls', function ($request, $response) {
     return $this->get('renderer')->render($response, 'urls.phtml');
