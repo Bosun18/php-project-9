@@ -16,7 +16,7 @@ class Database
         $username = $databaseUrl['user'];
         $password = $databaseUrl['pass'];
         $host = $databaseUrl['host'];
-        $port = 5432;
+        $port = $databaseUrl['port'];
         $dbName = ltrim($databaseUrl['path'], '/');
         $dsn = "pgsql:host={$host};port={$port};dbname={$dbName}";
         $options = [
