@@ -38,10 +38,10 @@
                     <th>Последняя проверка</th>
                     <th>Код ответа</th>
                 </tr>
-                <?php foreach ($urls as $urlId => $url) : ?>
+                <?php foreach ($urls as $url) : ?>
                     <tr>
-                        <td><?= $urlId ?></td>
-                        <td><a href="/urls/<?= $urlId ?>"><?= $url['name'] ?></a></td>
+                        <td><?= $url['id'] ?></td>
+                        <td><a href="/urls/<?= $url['id'] ?>"><?= $url['name'] ?></a></td>
                         <td><?= $url['created_at'] ?? '' ?></td>
                         <td><?= $url['status_code']  ?? '' ?></td>
                     </tr>
