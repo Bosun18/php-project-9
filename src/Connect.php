@@ -2,9 +2,9 @@
 
 namespace Bosun\PhpProject9;
 
-class Database
+class Connect
 {
-    private static ?Database $connection = null;
+    private static ?Connect $connection = null;
 
     protected function __construct()
     {
@@ -12,7 +12,7 @@ class Database
 
     public function connect()
     {
-        $databaseUrl = parse_url((string) getenv('DATABASE_URL'));
+        $databaseUrl = parse_url($_ENV('DATABASE_URL'));
         $username = $databaseUrl['user'];
         $password = $databaseUrl['pass'];
         $host = $databaseUrl['host'];
@@ -32,7 +32,7 @@ class Database
         return $pdo;
     }
 
-    public static function get(): ?Database
+    public static function get(): ?Connect
     {
         if (static::$connection === null) {
             static::$connection = new self();

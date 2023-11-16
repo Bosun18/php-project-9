@@ -6,11 +6,10 @@ use Slim\Middleware\MethodOverrideMiddleware;
 use Slim\Flash\Messages;
 use Carbon\Carbon;
 use Valitron\Validator;
-use Bosun\PhpProject9\Database;
+use Bosun\PhpProject9\Connect;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\TransferException;
 use DiDom\Document;
-use Illuminate\Support;
 
 session_start();
 
@@ -34,7 +33,7 @@ $container->set('flash', function () {
     return new Messages();
 });
 $container->set('pdo', function () {
-    return Database::get()->connect();
+    return Connect::get()->connect();
 });
 $container->set('client', function () {
     return new Client();
@@ -112,18 +111,6 @@ $app->post('/urls', function ($request, $response) use ($router) {
     }
 });
 
-$app->get('/urls', function ($request, $response) {
-    $pdo = $this->get('pdo');
-    $query = 'SELECT urls.id, urls.name, url_checks.status_code, MAX (url_checks.created_at) AS created_at 
-        FROM urls 
-        LEFT OUTER JOIN url_checks ON url_checks.url_id = urls.id 
-        GROUP BY url_checks.url_id, urls.id, url_checks.status_code 
-        ORDER BY urls.id DESC';
-    $dataToShow = $pdo->query($query)->fetchAll();
-
-    return $this->get('renderer')->render($response, 'urls.phtml', ['data' => $dataToShow]);
-})->setName('urls');
-
 $app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
     $flash = $this->get('flash')->getMessages();
     $alert = key($flash);
@@ -191,5 +178,17 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
 
     return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
 });
+
+$app->get('/urls', function ($request, $response) {
+    $pdo = $this->get('pdo');
+    $query = 'SELECT urls.id, urls.name, url_checks.status_code, MAX (url_checks.created_at) AS created_at 
+        FROM urls 
+        LEFT OUTER JOIN url_checks ON url_checks.url_id = urls.id 
+        GROUP BY url_checks.url_id, urls.id, url_checks.status_code 
+        ORDER BY urls.id DESC';
+    $dataToShow = $pdo->query($query)->fetchAll();
+
+    return $this->get('renderer')->render($response, 'urls.phtml', ['data' => $dataToShow]);
+})->setName('urls');
 
 $app->run();
