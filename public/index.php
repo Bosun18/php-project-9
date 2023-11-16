@@ -113,11 +113,83 @@ $app->post('/urls', function ($request, $response) use ($router) {
 });
 
 $app->get('/urls', function ($request, $response) {
-    return $this->get('renderer')->render($response, 'urls.phtml');
+    $pdo = $this->get('pdo');
+    $query = 'SELECT urls.id, urls.name, url_checks.status_code, MAX (url_checks.created_at) AS created_at 
+        FROM urls 
+        LEFT OUTER JOIN url_checks ON url_checks.url_id = urls.id 
+        GROUP BY url_checks.url_id, urls.id, url_checks.status_code 
+        ORDER BY urls.id DESC';
+    $dataToShow = $pdo->query($query)->fetchAll();
+
+    return $this->get('renderer')->render($response, 'urls.phtml', ['data' => $dataToShow]);
 })->setName('urls');
 
-$app->get('/urls/{id:[0-9]+}', function ($request, $response) {
-    return $this->get('renderer')->render($response, 'show.phtml');
+$app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
+    $flash = $this->get('flash')->getMessages();
+    $alert = key($flash);
+    if ($alert === 'error') {
+        $alert = 'warning';
+    }
+
+    $pdo = $this->get('pdo');
+    $query = "SELECT * FROM urls WHERE id = {$args['id']}";
+    $currentPage = $pdo->query($query)->fetch();
+
+    if ($currentPage) {
+        $query = "SELECT * FROM url_checks WHERE url_id = {$args['id']} ORDER BY created_at DESC";
+        $checks = $pdo->query($query)->fetchAll();
+        $params = [
+            'flash' => $flash,
+            'alert' => $alert,
+            'page' => $currentPage,
+            'checks' => $checks,
+        ];
+
+        return $this->get('renderer')->render($response, 'show.phtml', $params);
+    }
+    return $response->getBody()->write("Произошла ошибка при проверке, не удалось подключиться")->withStatus(404);
 })->setName('show');
+
+$app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) use ($router) {
+    $urlId = $args['url_id'];
+
+    try {
+        $pdo = $this->get('pdo');
+        $query = "SELECT name FROM urls WHERE id = {$urlId}";
+        $urlToCheck = $pdo->query($query)->fetchColumn();
+
+        $createdAt = Carbon::now();
+
+        $client = $this->get('client');
+        try {
+            $res = $client->get($urlToCheck);
+            $statusCode = $res->getStatusCode();
+            $this->get('flash')->addMessage('success', 'Страница успешно проверена');
+        } catch (TransferException $e) {
+            $this->get('flash')->addMessage('warning', 'Произошла ошибка при проверке');
+            return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+        }
+
+        $document = new Document((string) $res->getBody());
+        $h1 = optional($document->first('h1'))->text();
+        $title = optional($document->first('title'))->text();
+        $description = optional($document->first('meta[name=description]'))->getAttribute('content');
+
+        $query = "INSERT INTO url_checks (
+            url_id,
+            created_at,
+            status_code,
+            h1,
+            title,
+            description)
+            VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$urlId, $createdAt, $statusCode, $h1, $title, $description]);
+    } catch (\PDOException $e) {
+        echo $e->getMessage();
+    }
+
+    return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+});
 
 $app->run();
