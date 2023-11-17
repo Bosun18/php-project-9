@@ -5,6 +5,7 @@ use DI\Container;
 use Slim\Middleware\MethodOverrideMiddleware;
 use Slim\Flash\Messages;
 use Carbon\Carbon;
+use Slim\Views\PhpRenderer;
 use Valitron\Validator;
 use Bosun\PhpProject9\Connect;
 use GuzzleHttp\Client;
@@ -26,7 +27,7 @@ if (file_exists($autoloadPath1)) {
 
 $container = new Container();
 $container->set('renderer', function () {
-    return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
+    return new PhpRenderer(__DIR__ . '/../templates');
 });
 $container->set('flash', function () {
     return new Messages();
@@ -104,7 +105,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
 
         $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
         return $response->withRedirect($router->urlFor('show', ['id' => $lastId]));
-    } catch (\PDOException $e) {
+    } catch (PDOException $e) {
         echo $e->getMessage();
     }
 });
@@ -150,7 +151,7 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
             $result = $client->get($urlToCheck);
             $statusCode = $result->getStatusCode();
             $this->get('flash')->addMessage('success', 'Страница успешно проверена');
-        } catch (TransferException $e) {
+        } catch (TransferException) {
             $this->get('flash')->addMessage('warning', 'Ошибка при проверке страницы');
             return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
         }
@@ -170,7 +171,7 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
             VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($query);
         $stmt->execute([$urlId, $createdAt, $statusCode, $h1, $title, $description]);
-    } catch (\PDOException $e) {
+    } catch (PDOException $e) {
         echo $e->getMessage();
     }
 
