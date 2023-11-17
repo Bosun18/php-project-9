@@ -163,14 +163,14 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
 
         $query = "INSERT INTO url_checks (
             url_id,
-            created_at,
             status_code,
             h1,
             title,
-            description)
+            description,
+            created_at)
             VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($query);
-        $stmt->execute([$urlId, $createdAt, $statusCode, $h1, $title, $description]);
+        $stmt->execute([$urlId, $statusCode, $h1, $title, $description, $createdAt]);
     } catch (PDOException $e) {
         echo $e->getMessage();
     }
