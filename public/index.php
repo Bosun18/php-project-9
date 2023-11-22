@@ -169,8 +169,8 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
             description,
             created_at)
             VALUES (?, ?, ?, ?, ?, ?)";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([$urlId, $statusCode, $h1, $title, $description, $createdAt]);
+        $statement = $pdo->prepare($query);
+        $statement->execute([$urlId, $statusCode, $h1, $title, $description, $createdAt]);
     } catch (PDOException $e) {
         echo $e->getMessage();
     }
