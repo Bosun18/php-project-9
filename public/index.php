@@ -187,7 +187,7 @@ $app->get('/urls', function ($request, $response) {
         ORDER BY urls.id DESC';
     $dataToShow = $pdo->query($query)->fetchAll();
 
-    return $this->get('renderer')->render($response, 'urls.phtml', ['data' => $dataToShow]);
+    return $this->get('renderer')->render($response, 'urls.phtml', ['urls' => $dataToShow]);
 })->setName('urls');
 
 $app->run();
