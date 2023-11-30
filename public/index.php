@@ -33,7 +33,7 @@ $container->set('flash', function () {
     return new Messages();
 });
 $container->set('pdo', function () {
-    return Connect::get()->connect();
+    return (new Connect())->getConnection();
 });
 $container->set('client', function () {
     return new Client();

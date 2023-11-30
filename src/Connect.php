@@ -4,10 +4,11 @@ namespace Bosun\PhpProject9;
 
 class Connect
 {
-    private static ?Connect $connection = null;
+    private \PDO $connection;
 
-    protected function __construct()
+    public function __construct()
     {
+        $this->connect();
     }
 
     public function connect()
@@ -29,14 +30,11 @@ class Connect
             echo $e->getMessage();
             die();
         }
-        return $pdo;
+        $this->connection = $pdo;
     }
 
-    public static function get()
+    public function getConnection(): \PDO
     {
-        if (static::$connection === null) {
-            static::$connection = new self();
-        }
-        return static::$connection;
+        return $this->connection;
     }
 }
