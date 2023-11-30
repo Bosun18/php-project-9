@@ -11,7 +11,7 @@ class Connect
         $this->connect();
     }
 
-    public function connect()
+    public function connect(): void
     {
         $databaseUrl = parse_url((string) getenv('DATABASE_URL'));
         $username = $databaseUrl['user'];
