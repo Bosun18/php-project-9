@@ -157,17 +157,12 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $this->get('flash')->addMessage('error', 'Ошибка ' .
             $statusCode . ' при проверке страницы (доступ к странице запрещен или ограничен)');
         return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    } catch (ServerException | ConnectException $e) {
+    } catch (ServerException $e) {
         $statusCode = $e->getResponse()->getStatusCode();
         $this->get('flash')->addMessage('error', 'Ошибка ' .
             $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
         return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    } catch (RequestException $e) {
-        $statusCode = $e->getResponse()->getStatusCode();
-        $this->get('flash')->addMessage('error', 'Проверка была выполнена успешно, но сервер ответил с ошибкой ' .
-            $statusCode);
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    } catch (GuzzleHttp\Exception\GuzzleException $e) {
+    } catch (GuzzleHttp\Exception\GuzzleException) {
         $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
         return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
     }
