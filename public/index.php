@@ -162,8 +162,7 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $document = new Document((string) $result->getBody());
         $h1 = optional($document->first('h1'))->text();
         $title = optional($document->first('title'))->text();
-        $description = optional($document->first('meta[name=description]'))->getAttribute('content') ??
-            'Ошибка при получении данных описания';
+        $description = optional($document->first('meta[name=description]'))->getAttribute('content');
 
 // Проверяем, заполнены ли обязательные поля и устанавливаем значения по умолчанию при необходимости if (empty($h1))
 // { $h1 = 'N/A'; } if (empty($title)) { $title = 'N/A'; } if (empty($description)) { $description = 'N/A'; }
