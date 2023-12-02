@@ -143,32 +143,33 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $pdo = $this->get('pdo');
         $query = "SELECT name FROM urls WHERE id = $urlId";
         $urlToCheck = $pdo->query($query)->fetchColumn();
-
         $createdAt = Carbon::now();
-
         $client = $this->get('client');
         try {
             $result = $client->get($urlToCheck);
             $statusCode = $result->getStatusCode();
             $this->get('flash')->addMessage('success', 'Страница успешно проверена');
-        } catch (TransferException) {
-            $this->get('flash')->addMessage('warning', 'Ошибка при проверке страницы');
+        } catch (GuzzleHttp\Exception\RequestException $e) {
+            if ($e->getResponse()) {
+                $statusCode = $e->getResponse()->getStatusCode();
+                $this->get('flash')->addMessage('error', 'Ошибка ' . $statusCode . ' при проверке страницы');
+            } else {
+                $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы');
+            }
             return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
         }
 
         $document = new Document((string) $result->getBody());
         $h1 = optional($document->first('h1'))->text();
         $title = optional($document->first('title'))->text();
-        $description = optional($document->first('meta[name=description]'))->getAttribute('content');
+        $description = optional($document->first('meta[name=description]'))->getAttribute('content') ??
+            'Ошибка при получении данных описания';
 
-        $query = "INSERT INTO url_checks (
-            url_id,
-            status_code,
-            h1,
-            title,
-            description,
-            created_at)
-            VALUES (?, ?, ?, ?, ?, ?)";
+// Проверяем, заполнены ли обязательные поля и устанавливаем значения по умолчанию при необходимости if (empty($h1))
+// { $h1 = 'N/A'; } if (empty($title)) { $title = 'N/A'; } if (empty($description)) { $description = 'N/A'; }
+
+        $query = "INSERT INTO url_checks ( url_id, status_code, h1, title, description, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)";
         $statement = $pdo->prepare($query);
         $statement->execute([$urlId, $statusCode, $h1, $title, $description, $createdAt]);
     } catch (PDOException $e) {
@@ -177,6 +178,58 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
 
     return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
 });
+
+//$app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) use ($router) {
+//    $urlId = $args['url_id'];
+//
+//    try {
+//        $pdo = $this->get('pdo');
+//        $query = "SELECT name FROM urls WHERE id = $urlId";
+//        $urlToCheck = $pdo->query($query)->fetchColumn();
+//
+//        $createdAt = Carbon::now();
+//
+//        $client = $this->get('client');
+//        try {
+//            $result = $client->get($urlToCheck);
+//            $statusCode = $result->getStatusCode();
+//            $this->get('flash')->addMessage('success', 'Страница успешно проверена');
+//        } catch (GuzzleHttp\Exception\ClientException|GuzzleHttp\Exception\ServerException $e) {
+//            $statusCode = $e->getResponse()->getStatusCode();
+//            $this->get('flash')->addMessage('error', 'Ошибка ' . $statusCode . ' при проверке страницы');
+//            return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//        } catch (GuzzleHttp\Exception\GuzzleException $e) {
+//            $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы');
+//            return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//        }
+////        } catch (TransferException) {
+////            $this->get('flash')->addMessage('warning', 'Ошибка при проверке страницы');
+////            return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+////        }
+//
+//        $document = new Document((string) $result->getBody());
+//        $h1 = optional($document->first('h1'))->text();
+//        $title = optional($document->first('title'))->text();
+//        $description = optional($document->first('meta[name=description]'))->getAttribute('content') ??
+//          'Ошибка при получении данных описания';
+////        $description = optional($document->first('meta[name=description]'))->getAttribute('content');
+//
+//        $query = "INSERT INTO url_checks (
+//            url_id,
+//            status_code,
+//            h1,
+//            title,
+//            description,
+//            created_at)
+//            VALUES (?, ?, ?, ?, ?, ?)";
+//        $statement = $pdo->prepare($query);
+//        $statement->execute([$urlId, $statusCode, $h1, $title, $description, $createdAt]);
+//    } catch (PDOException $e) {
+//        echo $e->getMessage();
+//    }
+//
+//    return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//});
 
 $app->get('/urls', function ($request, $response) {
     $pdo = $this->get('pdo');
