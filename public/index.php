@@ -191,7 +191,7 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $result = $client->get($urlToCheck);
         $statusCode = $result->getStatusCode();
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
-    } catch (GuzzleHttp\Exception\ClientException|GuzzleHttp\Exception\ServerException $e) {
+    } catch (GuzzleHttp\Exception\ClientException | GuzzleHttp\Exception\ServerException $e) {
         $statusCode = $e->getResponse()->getStatusCode();
         $this->get('flash')->addMessage('error', 'Ошибка ' . $statusCode . ' при проверке страницы');
         return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
