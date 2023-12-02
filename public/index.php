@@ -9,7 +9,10 @@ use Slim\Views\PhpRenderer;
 use Valitron\Validator;
 use Bosun\PhpProject9\Connect;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\ServerException;
 use DiDom\Document;
 
 session_start();
@@ -191,24 +194,30 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $result = $client->get($urlToCheck);
         $statusCode = $result->getStatusCode();
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
-    } catch (GuzzleHttp\Exception\ClientException $e) {
-        $statusCode = $e->getResponse()->getStatusCode();
-        $this->get('flash')->addMessage('error', 'Ошибка ' .
-            $statusCode . ' при проверке страницы (доступ к странице запрещен или ограничен)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    } catch (GuzzleHttp\Exception\ServerException $e) {
-        $statusCode = $e->getResponse()->getStatusCode();
-        $this->get('flash')->addMessage('error', 'Ошибка ' .
-            $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    } catch (GuzzleHttp\Exception\GuzzleException $e) {
-        $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+    } catch (ClientException $e) {
+        $statusCode = $e->getResponse();
+        $this->get('flash')->addMessage('error', 'Проверка была выполнена успешно, но сервер ответил с ошибкой ');
+    } catch (ConnectException | ServerException) {
+        $this->get('flash')->addMessage('error', 'Произошла ошибка при проверке, не удалось подключиться');
+        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]), 302);
+    } catch (RequestException) {
+        $this->get('flash')->addMessage('warning', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
+        return $this->get('view')->render($response, 'errors/500.twig')->withStatus(500);
     }
-//        } catch (TransferException) {
-//            $this->get('flash')->addMessage('warning', 'Ошибка при проверке страницы');
-//            return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-//        }
+//    } catch (GuzzleHttp\Exception\ClientException $e) {
+//        $statusCode = $e->getResponse()->getStatusCode();
+//        $this->get('flash')->addMessage('error', 'Ошибка ' .
+//            $statusCode . ' при проверке страницы (доступ к странице запрещен или ограничен)');
+//        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//    } catch (GuzzleHttp\Exception\ServerException $e) {
+//        $statusCode = $e->getResponse()->getStatusCode();
+//        $this->get('flash')->addMessage('error', 'Ошибка ' .
+//            $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
+//        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//    } catch (GuzzleHttp\Exception\GuzzleException $e) {
+//        $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
+//        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//    }
 
     $document = new Document((string) $result->getBody());
     $h1 = optional($document->first('h1'))->text();
