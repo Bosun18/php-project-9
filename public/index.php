@@ -218,20 +218,6 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
 //        $this->get('flash')->addMessage('warning', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
 //        return $this->get('view')->render($response, 'errors/500.twig')->withStatus(500);
 //    }
-    } catch (GuzzleHttp\Exception\ClientException $e) {
-        $statusCode = $e->getResponse()->getStatusCode();
-        $this->get('flash')->addMessage('error', 'Ошибка ' .
-            $statusCode . ' при проверке страницы (доступ к странице запрещен или ограничен)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    } catch (GuzzleHttp\Exception\ServerException $e) {
-        $statusCode = $e->getResponse()->getStatusCode();
-        $this->get('flash')->addMessage('error', 'Ошибка ' .
-            $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    } catch (GuzzleHttp\Exception\GuzzleException $e) {
-        $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    }
 
     $document = new Document((string) $result->getBody());
     $h1 = optional($document->first('h1'))->text();
