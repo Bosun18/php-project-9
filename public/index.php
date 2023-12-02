@@ -10,8 +10,6 @@ use Valitron\Validator;
 use Bosun\PhpProject9\Connect;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
 use DiDom\Document;
 
