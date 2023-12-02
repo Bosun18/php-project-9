@@ -54,9 +54,9 @@ $app->get('/', function ($request, $response) {
                 id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                 url_id bigint REFERENCES urls (id),
                 status_code int,
-                h1 varchar(255),
-                title varchar(255),
-                description varchar(255),
+                h1 text,
+                title text,
+                description text,
                 created_at timestamp
             );");
     return $this->get('renderer')->render($response, 'main.phtml');
@@ -191,9 +191,15 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $result = $client->get($urlToCheck);
         $statusCode = $result->getStatusCode();
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
-    } catch (GuzzleHttp\Exception\ClientException | GuzzleHttp\Exception\ServerException $e) {
+    } catch (GuzzleHttp\Exception\ClientException $e) {
         $statusCode = $e->getResponse()->getStatusCode();
-        $this->get('flash')->addMessage('error', 'Ошибка ' . $statusCode . ' при проверке страницы');
+        $this->get('flash')->addMessage('error', 'Ошибка ' .
+            $statusCode . ' при проверке страницы (доступ к странице запрещен или ограничен)');
+        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+    } catch (GuzzleHttp\Exception\ServerException $e) {
+        $statusCode = $e->getResponse()->getStatusCode();
+        $this->get('flash')->addMessage('error', 'Ошибка ' .
+            $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
         return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
     } catch (GuzzleHttp\Exception\GuzzleException $e) {
         $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы');
