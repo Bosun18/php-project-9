@@ -36,7 +36,7 @@
 <?php endif ?>
 <main class="flex-grow-1">
     <div class="container-lg mt-3">
-        <h1>Сайт: https://www.google.com</h1>
+        <h1>Сайт: <?= $page['name'] ?></h1>
         <div class="table-responsive">
             <table class="table table-bordered table-hover text-nowrap" data-test="url">
                 <tbody>
@@ -57,7 +57,7 @@
         </div>
         <h2 class="mt-5 mb-3">Проверки</h2>
         <form method="post" action="/urls/<?= $page['id'] ?>/checks">
-            <input type="submit" class="btn btn-primary" value="Запустить проверку">
+            <input type="submit" class="btn btn-primary mb-3" value="Запустить проверку">
         </form>
         <table class="table table-bordered table-hover" data-test="checks">
             <tbody>
