@@ -195,7 +195,7 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $statusCode = $result->getStatusCode();
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (ClientException $e) {
-        $statusCode = $e->getResponse();
+        $statusCode = $e->getResponse()->getStatusCode();
         $this->get('flash')->addMessage('error', 'Проверка была выполнена успешно, но сервер ответил с ошибкой ');
     } catch (ConnectException | ServerException) {
         $this->get('flash')->addMessage('error', 'Произошла ошибка при проверке, не удалось подключиться');
