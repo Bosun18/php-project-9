@@ -147,13 +147,13 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
 //    $statement->execute([$url_id]);
     $urlToCheck = $pdo->query($query)->fetchColumn();
 
-//    $createdAt = Carbon::now();
+    $createdAt = Carbon::now();
 
     $client = $this->get('client');
 //    $client = new Client();
 
     try {
-        $result = $client->get($urlToCheck['name']);
+        $result = $client->get($urlToCheck);
         $statusCode = $result->getStatusCode();
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (ClientException $e) {
