@@ -149,8 +149,8 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
 
 //    $createdAt = Carbon::now();
 
-//    $client = $this->get('client');
-    $client = new Client();
+    $client = $this->get('client');
+//    $client = new Client();
 
     try {
         $result = $client->get($urlToCheck['name']);
