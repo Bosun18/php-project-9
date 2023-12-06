@@ -10,6 +10,8 @@ use Valitron\Validator;
 use Bosun\PhpProject9\Connect;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
 use DiDom\Document;
 
@@ -138,37 +140,61 @@ $app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
 })->setName('show');
 
 $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) use ($router) {
+//    $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) use ($router) {
     $urlId = $args['url_id'];
     $pdo = $this->get('pdo');
-    $query = "SELECT name FROM urls WHERE id = $urlId";
-    $urlToCheck = $pdo->query($query)->fetchColumn();
+//    $query = "SELECT name FROM urls WHERE id = $urlId";
+    $query = 'SELECT name FROM urls WHERE id = ?';
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$url_id]);
+    $urlToCheck = $stmt->fetch();
+//    $urlToCheck = $pdo->query($query)->fetchColumn();
 
-    $createdAt = Carbon::now();
+//    $createdAt = Carbon::now();
 
-    $client = $this->get('client');
+//    $client = $this->get('client');
+    $client = new Client();
+
+//    try {
+//        $result = $client->get($urlToCheck['name']);
+//        $statusCode = $result->getStatusCode();
+//        $this->get('flash')->addMessage('success', 'Страница успешно проверена');
+//    } catch (ClientException $e) {
+//        $statusCode = $e->getResponse()->getStatusCode();
+//        $this->get('flash')->addMessage('error', 'Ошибка ' .
+//            $statusCode . ' при проверке страницы (доступ к странице запрещен или ограничен)');
+//        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//    } catch (ServerException $e) {
+//        $statusCode = $e->getResponse()->getStatusCode();
+//        $this->get('flash')->addMessage('error', 'Ошибка ' .
+//            $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
+//        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//    } catch (GuzzleHttp\Exception\GuzzleException) {
+//        $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
+//        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//    }
     try {
-        $result = $client->get($urlToCheck);
-        $statusCode = $result->getStatusCode();
-        $this->get('flash')->addMessage('success', 'Страница успешно проверена');
+        $result = $client->get($selectedUrl['name']);
+        $message = 'Страница успешно проверена';
+        $this->get('flash')->addMessage('success', $message);
+    } catch (ConnectException $e) {
+        $message = 'Произошла ошибка при проверке, не удалось подключиться';
+        $this->get('flash')->addMessage('danger', $message);
+        return $response->withRedirect($this->get('router')->urlFor('urls.show', ['id' => $url_id]));
     } catch (ClientException $e) {
-        $statusCode = $e->getResponse()->getStatusCode();
-        $this->get('flash')->addMessage('error', 'Ошибка ' .
-            $statusCode . ' при проверке страницы (доступ к странице запрещен или ограничен)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    } catch (ServerException $e) {
-        $statusCode = $e->getResponse()->getStatusCode();
-        $this->get('flash')->addMessage('error', 'Ошибка ' .
-            $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-    } catch (GuzzleHttp\Exception\GuzzleException) {
-        $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+        $res = $e->getResponse();
+        $message = 'Проверка была выполнена успешно, но сервер ответил с ошибкой';
+        $this->get('flash')->addMessage('warning', $message);
+    } catch (RequestException $e) {
+        $message = 'Проверка была выполнена успешно, но сервер ответил с ошибкой';
+        $this->get('flash')->addMessage('warning', $message);
+        return $response->withRedirect($this->get('router')->urlFor('urls.show', ['id' => $url_id]));
     }
 
     $document = new Document((string) $result->getBody());
     $h1 = optional($document->first('h1'))->text();
     $title = optional($document->first('title'))->text();
-    $description = optional($document->first('meta[name=description]'))->getAttribute('content');
+    $description = optional($document->first('meta[name=description]'))->attr('content');
 
     $query = "INSERT INTO url_checks (
         url_id,
@@ -177,13 +203,24 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         title,
         description,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?)";
+        VALUES (:url_id, :status_code, :h1, :title, :description, :created_at)";
     $statement = $pdo->prepare($query);
-    $statement->execute([$urlId, $statusCode, $h1, $title, $description, $createdAt]);
+    $statement->execute([
+        'url_id' => $url_id,
+        'status_code' => $statusCode,
+        'h1' => $h1,
+        'title' => $title,
+        'description' => $description,
+        'created_at' => Carbon::now(),
+    ]);
+//    $lastId = $pdo->lastInsertId('url_checks_id_seq');
+
+    return $response->withRedirect($this->get('router')->urlFor('urls.show', ['id' => $url_id]));
+})->setName('urls.check');
 
 
-    return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
-});
+//    return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+//});
 
 $app->get('/urls', function ($request, $response) {
     $pdo = $this->get('pdo');
