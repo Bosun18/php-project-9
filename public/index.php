@@ -140,14 +140,13 @@ $app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
 })->setName('show');
 
 $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) use ($router) {
-//    $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) use ($router) {
     $urlId = $args['url_id'];
     $pdo = $this->get('pdo');
 //    $query = "SELECT name FROM urls WHERE id = $urlId";
     $query = 'SELECT name FROM urls WHERE id = ?';
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([$url_id]);
-    $urlToCheck = $stmt->fetch();
+    $statement = $pdo->prepare($query);
+    $statement->execute([$url_id]);
+    $urlToCheck = $statement->fetch();
 //    $urlToCheck = $pdo->query($query)->fetchColumn();
 
 //    $createdAt = Carbon::now();
