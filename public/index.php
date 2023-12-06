@@ -186,14 +186,7 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         created_at)
         VALUES (?, ?, ?, ?, ?, ?)";
     $statement = $pdo->prepare($query);
-    $statement->execute([
-        'url_id' => $url_id,
-        'status_code' => $statusCode,
-        'h1' => $h1,
-        'title' => $title,
-        'description' => $description,
-        'created_at' => Carbon::now(),
-    ]);
+    $statement->execute([$urlId, $createdAt, $statusCode, $h1, $title, $description]);
 
 
     return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
