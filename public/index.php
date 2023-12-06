@@ -142,16 +142,10 @@ $app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
 $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) use ($router) {
     $urlId = $args['url_id'];
     $pdo = $this->get('pdo');
-    $query = "SELECT name FROM urls WHERE id = {$urlId}";
-//    $statement = $pdo->prepare($query);
-//    $statement->execute([$url_id]);
+    $query = "SELECT name FROM urls WHERE id = $urlId";
     $urlToCheck = $pdo->query($query)->fetchColumn();
-
     $createdAt = Carbon::now();
-
     $client = $this->get('client');
-//    $client = new Client();
-
     try {
         $result = $client->get($urlToCheck);
         $statusCode = $result->getStatusCode();
@@ -170,13 +164,10 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
         return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
     }
-
-
     $document = new Document((string) $result->getBody());
     $h1 = optional($document->first('h1'))->text();
     $title = optional($document->first('title'))->text();
     $description = optional($document->first('meta[name=description]'))->getAttribute('content');
-
     $query = "INSERT INTO url_checks (
         url_id,
         status_code,
@@ -186,12 +177,9 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         created_at)
         VALUES (?, ?, ?, ?, ?, ?)";
     $statement = $pdo->prepare($query);
-    $statement->execute([$urlId, $createdAt, $statusCode, $h1, $title, $description]);
-
-
+    $statement->execute([$urlId, $statusCode, $h1, $title, $description, $createdAt]);
     return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
 });
-
 $app->get('/urls', function ($request, $response) {
     $pdo = $this->get('pdo');
     $query = 'SELECT urls.id, urls.name, url_checks.status_code, MAX (url_checks.created_at) AS created_at 
@@ -200,7 +188,6 @@ $app->get('/urls', function ($request, $response) {
         GROUP BY url_checks.url_id, urls.id, url_checks.status_code 
         ORDER BY urls.id DESC';
     $dataToShow = $pdo->query($query)->fetchAll();
-
     return $this->get('renderer')->render($response, 'urls.phtml', ['urls' => $dataToShow]);
 })->setName('urls');
 
