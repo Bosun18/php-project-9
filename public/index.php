@@ -154,10 +154,7 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $statusCode = $e->getResponse()->getStatusCode();
         $result = $e->getResponse();
         $this->get('flash')->addMessage('error', 'Ошибка ' .
-            $statusCode . ' Проверка была выполнена успешно, но сервер ответил с ошибкой');
-//        $this->get('flash')->addMessage('error', 'Ошибка ' .
-//            $statusCode . ' при проверке страницы (доступ к странице запрещен или ограничен)');
-//        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+            $statusCode . ' при проверке страницы');
     } catch (ServerException $e) {
         $statusCode = $e->getResponse()->getStatusCode();
         $this->get('flash')->addMessage('error', 'Ошибка ' .
