@@ -145,10 +145,10 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $statusCode = $e->getResponse()->getStatusCode();
         $this->get('flash')->addMessage('error', 'Ошибка ' .
             $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
     } catch (GuzzleHttp\Exception\GuzzleException) {
         $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
     }
     $document = new Document((string) $result->getBody());
     $h1 = optional($document->first('h1'))->text();
