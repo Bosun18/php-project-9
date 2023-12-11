@@ -48,20 +48,6 @@ $app->add(MethodOverrideMiddleware::class);
 $router = $app->getRouteCollector()->getRouteParser();
 
 $app->get('/', function ($request, $response) {
-    $this->get('pdo')->exec("CREATE TABLE IF NOT EXISTS urls (
-                id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                name varchar(255) NOT NULL UNIQUE,
-                created_at timestamp
-            );");
-    $this->get('pdo')->exec("CREATE TABLE IF NOT EXISTS url_checks (
-                id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                url_id bigint REFERENCES urls (id),
-                status_code int,
-                h1 text,
-                title text,
-                description text,
-                created_at timestamp
-            );");
     return $this->get('renderer')->render($response, 'main.phtml');
 })->setName('main');
 
