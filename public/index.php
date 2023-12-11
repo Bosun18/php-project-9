@@ -48,6 +48,20 @@ $app->add(MethodOverrideMiddleware::class);
 $router = $app->getRouteCollector()->getRouteParser();
 
 $app->get('/', function ($request, $response) {
+    $this->get('pdo')->exec("CREATE TABLE IF NOT EXISTS urls (
+                id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                name varchar(255) NOT NULL UNIQUE,
+                created_at timestamp
+            );");
+    $this->get('pdo')->exec("CREATE TABLE IF NOT EXISTS url_checks (
+                id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                url_id bigint REFERENCES urls (id),
+                status_code int,
+                h1 text,
+                title text,
+                description text,
+                created_at timestamp
+            );");
     return $this->get('renderer')->render($response, 'main.phtml');
 })->setName('main');
 
@@ -72,7 +86,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
     try {
         $pdo = $this->get('pdo');
 
-        $url = strtolower($urls['url']['name']);
+        $url = mb_strtolower($urls['url']['name']);
         $parsedUrl = parse_url($url);
         $name = "{$parsedUrl['scheme']}://{$parsedUrl['host']}";
         $createdAt = Carbon::now();
@@ -145,10 +159,10 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $statusCode = $e->getResponse()->getStatusCode();
         $this->get('flash')->addMessage('error', 'Ошибка ' .
             $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
-        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
+        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
     } catch (GuzzleHttp\Exception\GuzzleException) {
         $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
-        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
+        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
     }
     $document = new Document((string) $result->getBody());
     $h1 = optional($document->first('h1'))->text();
