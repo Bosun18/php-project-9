@@ -1,17 +1,18 @@
 <?php
 
-use Slim\Factory\AppFactory;
 use DI\Container;
+use Slim\Factory\AppFactory;
+use Slim\Routing\RouteContext;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Middleware\MethodOverrideMiddleware;
 use Slim\Flash\Messages;
-use Carbon\Carbon;
 use Slim\Views\PhpRenderer;
-use Valitron\Validator;
 use Bosun\PhpProject9\Connect;
 use GuzzleHttp\Client;
+use Valitron\Validator;
+use Carbon\Carbon;
 use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
 use DiDom\Document;
 
@@ -29,29 +30,51 @@ if (file_exists($autoloadPath1)) {
 }
 
 $container = new Container();
-$container->set('renderer', function () {
-    return new PhpRenderer(__DIR__ . '/../templates');
+
+$app = AppFactory::createFromContainer($container);
+
+$app->add(function (ServerRequestInterface $request, RequestHandlerInterface $handler) use ($container) {
+    $routeContext = RouteContext::fromRequest($request);
+    $route = $routeContext->getRoute();
+
+    $container->set('routeName', $routeName = !empty($route) ? $route->getName() : '');
+
+    return $handler->handle($request);
 });
+
 $container->set('flash', function () {
     return new Messages();
 });
+
+$container->set('router', $app->getRouteCollector()->getRouteParser());
+
+$container->set('renderer', function () use ($container) {
+    $renderer = new PhpRenderer(__DIR__ . '/../templates');
+    $renderer->setLayout('layout.phtml');
+    $renderer->addAttribute('router', $container->get('router'));
+    $renderer->addAttribute('flash', $container->get('flash')->getMessages());
+    $renderer->addAttribute('routeName', $container->get('routeName'));
+    return $renderer;
+});
+
 $container->set('pdo', function () {
     return (new Connect())->getConnection();
 });
+
 $container->set('client', function () {
     return new Client();
 });
 
-$app = AppFactory::createFromContainer($container);
+$app->addRoutingMiddleware();
+
 $app->addErrorMiddleware(true, true, true);
 $app->add(MethodOverrideMiddleware::class);
-$router = $app->getRouteCollector()->getRouteParser();
 
 $app->get('/', function ($request, $response) {
     return $this->get('renderer')->render($response, 'main.phtml');
 })->setName('main');
 
-$app->post('/urls', function ($request, $response) use ($router) {
+$app->post('/urls', function ($request, $response) {
     $urls = (array)$request->getParsedBody();
     $validator = new Validator($urls['url']);
     $validator->rule('required', 'name')->message('URL не должен быть пустым')
@@ -85,7 +108,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
             $existedUrlId = (string)($pdo->query($query)->fetchColumn());
 
             $this->get('flash')->addMessage('success', 'Страница уже существует');
-            return $response->withRedirect($router->urlFor('show', ['id' => $existedUrlId]));
+            return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $existedUrlId]));
         }
 
         $query = "INSERT INTO urls (name, created_at) VALUES ('$name', '$createdAt')";
@@ -93,7 +116,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
         $lastId = $pdo->lastInsertId();
 
         $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
-        return $response->withRedirect($router->urlFor('show', ['id' => $lastId]));
+        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $lastId]));
     } catch (PDOException $e) {
         echo $e->getMessage();
     }
@@ -125,7 +148,7 @@ $app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
     return $response->getBody()->write("Не удалось подключиться")->withStatus(404);
 })->setName('show');
 
-$app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) use ($router) {
+$app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) {
     $urlId = $args['url_id'];
     $pdo = $this->get('pdo');
     $query = "SELECT name FROM urls WHERE id = $urlId";
@@ -145,10 +168,10 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $statusCode = $e->getResponse()->getStatusCode();
         $this->get('flash')->addMessage('error', 'Ошибка ' .
             $statusCode . ' при проверке страницы (внутренняя ошибка сервера)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
     } catch (GuzzleHttp\Exception\GuzzleException) {
         $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
-        return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
     }
     $document = new Document((string) $result->getBody());
     $h1 = optional($document->first('h1'))->text();
@@ -164,7 +187,7 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         VALUES (?, ?, ?, ?, ?, ?)";
     $statement = $pdo->prepare($query);
     $statement->execute([$urlId, $statusCode, $h1, $title, $description, $createdAt]);
-    return $response->withRedirect($router->urlFor('show', ['id' => $urlId]));
+    return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
 });
 $app->get('/urls', function ($request, $response) {
     $pdo = $this->get('pdo');
