@@ -17,10 +17,10 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" href="/">Главная</a>
+                    <a class="nav-link <?= isset($routeName) && $routeName === 'main' ? 'active' : '' ?>" href="<?= $router->urlFor('main') ?>">Главная</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/urls">Сайты</a>
+                    <a class="nav-link <?= isset($routeName) && $routeName === 'urls' ? 'active' : '' ?>" href="<?= $router->urlFor('urls') ?>">Сайты</a>
                 </li>
 
             </ul>
