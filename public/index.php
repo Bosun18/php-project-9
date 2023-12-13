@@ -159,8 +159,10 @@ $app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
 $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args) {
     $urlId = $args['url_id'];
     $pdo = $this->get('pdo');
-    $query = "SELECT name FROM urls WHERE id = $urlId";
-    $urlToCheck = $pdo->query($query)->fetchColumn();
+    $query = "SELECT name FROM urls WHERE id = ?";
+    $statement = $pdo->prepare($query);
+    $statement->execute([$urlId]);
+    $urlToCheck = $statement->fetchColumn();
     $createdAt = Carbon::now();
     $client = $this->get('client');
     try {
