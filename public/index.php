@@ -106,8 +106,10 @@ $app->post('/urls', function ($request, $response) {
         $existedUrl = $statement->fetchAll();
 
         if (count($existedUrl) > 0) {
-            $query = "SELECT id FROM urls WHERE name = '$name'";
-            $existedUrlId = (string)($pdo->query($query)->fetchColumn());
+            $query = "SELECT id FROM urls WHERE name = ?";
+            $statement = $pdo->prepare($query);
+            $statement->execute([$name]);
+            $existedUrlId = $statement->fetchColumn();
 
             $this->get('flash')->addMessage('success', 'Страница уже существует');
             return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $existedUrlId]));
