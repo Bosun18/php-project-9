@@ -100,8 +100,10 @@ $app->post('/urls', function ($request, $response) {
         $name = "{$parsedUrl['scheme']}://{$parsedUrl['host']}";
         $createdAt = Carbon::now();
 
-        $query = "SELECT name FROM urls WHERE name = '$name'";
-        $existedUrl = $pdo->query($query)->fetchAll();
+        $query = "SELECT name FROM urls WHERE name = ?";
+        $statement = $pdo->prepare($query);
+        $statement->execute([$name]);
+        $existedUrl = $statement->fetchAll();
 
         if (count($existedUrl) > 0) {
             $query = "SELECT id FROM urls WHERE name = '$name'";
@@ -111,8 +113,9 @@ $app->post('/urls', function ($request, $response) {
             return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $existedUrlId]));
         }
 
-        $query = "INSERT INTO urls (name, created_at) VALUES ('$name', '$createdAt')";
-        $pdo->exec($query);
+        $query = "INSERT INTO urls (name, created_at) VALUES (?, ?)";
+        $statement = $pdo->prepare($query);
+        $statement->execute([$name, $createdAt]);
         $lastId = $pdo->lastInsertId();
 
         $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
@@ -129,13 +132,18 @@ $app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
         $alert = 'warning';
     }
 
+    $id = $args['id'];
     $pdo = $this->get('pdo');
-    $query = "SELECT * FROM urls WHERE id = {$args['id']}";
-    $currentPage = $pdo->query($query)->fetch();
+    $query = "SELECT * FROM urls WHERE id = ?";
+    $statement = $pdo->prepare($query);
+    $statement->execute([$id]);
+    $currentPage = $statement->fetch();
 
     if ($currentPage) {
-        $query = "SELECT * FROM url_checks WHERE url_id = {$args['id']} ORDER BY created_at DESC";
-        $checks = $pdo->query($query)->fetchAll();
+        $query = "SELECT * FROM url_checks WHERE url_id = ? ORDER BY created_at DESC";
+        $statement = $pdo->prepare($query);
+        $statement->execute([$id]);
+        $checks = $statement->fetchAll();
         $params = [
             'flash' => $flash,
             'alert' => $alert,
