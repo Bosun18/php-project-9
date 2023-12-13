@@ -68,6 +68,7 @@ $container->set('client', function () {
 $app->addRoutingMiddleware();
 
 $app->addErrorMiddleware(true, true, true);
+
 $app->add(MethodOverrideMiddleware::class);
 
 $app->get('/', function ($request, $response) {
@@ -77,7 +78,8 @@ $app->get('/', function ($request, $response) {
 $app->post('/urls', function ($request, $response) {
     $urls = (array)$request->getParsedBody();
     $validator = new Validator($urls['url']);
-    $validator->rule('required', 'name')->message('URL не должен быть пустым')
+    $validator
+        ->rule('required', 'name')->message('URL не должен быть пустым')
         ->rule('url', 'name')->message('Некорректный URL')
         ->rule('lengthMax', 'name', 255)->message('Превышено допустимое количество символов');
 
@@ -94,10 +96,10 @@ $app->post('/urls', function ($request, $response) {
 
     try {
         $pdo = $this->get('pdo');
-
         $url = mb_strtolower($urls['url']['name']);
         $parsedUrl = parse_url($url);
         $name = "{$parsedUrl['scheme']}://{$parsedUrl['host']}";
+
         $createdAt = Carbon::now();
 
         $query = "SELECT name FROM urls WHERE name = ?";
@@ -130,6 +132,7 @@ $app->post('/urls', function ($request, $response) {
 $app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
     $flash = $this->get('flash')->getMessages();
     $alert = key($flash);
+
     if ($alert === 'error') {
         $alert = 'warning';
     }
@@ -165,8 +168,11 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
     $statement = $pdo->prepare($query);
     $statement->execute([$urlId]);
     $urlToCheck = $statement->fetchColumn();
+
     $createdAt = Carbon::now();
+
     $client = $this->get('client');
+
     try {
         $result = $client->get($urlToCheck);
         $statusCode = $result->getStatusCode();
@@ -185,10 +191,12 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы (Connection timed out)');
         return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
     }
+
     $document = new Document((string) $result->getBody());
     $h1 = optional($document->first('h1'))->text();
     $title = optional($document->first('title'))->text();
     $description = optional($document->first('meta[name=description]'))->getAttribute('content');
+
     $query = "INSERT INTO url_checks (
         url_id,
         status_code,
@@ -199,8 +207,10 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
         VALUES (?, ?, ?, ?, ?, ?)";
     $statement = $pdo->prepare($query);
     $statement->execute([$urlId, $statusCode, $h1, $title, $description, $createdAt]);
+
     return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
 });
+
 $app->get('/urls', function ($request, $response) {
     $pdo = $this->get('pdo');
     $query = 'SELECT urls.id, urls.name, url_checks.status_code, MAX (url_checks.created_at) AS created_at 
@@ -209,6 +219,7 @@ $app->get('/urls', function ($request, $response) {
         GROUP BY url_checks.url_id, urls.id, url_checks.status_code 
         ORDER BY urls.id DESC';
     $dataToShow = $pdo->query($query)->fetchAll();
+
     return $this->get('renderer')->render($response, 'urls.phtml', ['urls' => $dataToShow]);
 })->setName('urls');
 
