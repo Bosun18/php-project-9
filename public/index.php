@@ -107,7 +107,7 @@ $app->post('/urls', function ($request, $response) {
         $statement->execute([$name]);
         $existedUrl = $statement->fetchAll();
 
-        if (count($existedUrl) > 0) {
+        if ($existedUrl) {
             $query = "SELECT id FROM urls WHERE name = ?";
             $statement = $pdo->prepare($query);
             $statement->execute([$name]);
@@ -210,18 +210,6 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
 
     return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
 });
-
-//$app->get('/urls', function ($request, $response) {
-//    $pdo = $this->get('pdo');
-//    $query = 'SELECT urls.id, urls.name, url_checks.status_code, MAX (url_checks.created_at) AS created_at
-//        FROM urls
-//        LEFT OUTER JOIN url_checks ON url_checks.url_id = urls.id
-//        GROUP BY url_checks.url_id, urls.id, url_checks.status_code
-//        ORDER BY urls.id DESC';
-//    $dataToShow = $pdo->query($query)->fetchAll();
-//
-//    return $this->get('renderer')->render($response, 'urls.phtml', ['urls' => $dataToShow]);
-//})->setName('urls');
 
 $app->get('/urls', function ($request, $response) {
     $pdo = $this->get('pdo');
