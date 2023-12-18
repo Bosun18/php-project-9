@@ -94,39 +94,36 @@ $app->post('/urls', function ($request, $response) {
         return $this->get('renderer')->render($response->withStatus(422), 'main.phtml', $params);
     }
 
-    try {
-        $pdo = $this->get('pdo');
-        $url = mb_strtolower($urls['url']['name']);
-        $parsedUrl = parse_url($url);
-        $name = "{$parsedUrl['scheme']}://{$parsedUrl['host']}";
 
-        $createdAt = Carbon::now();
+    $pdo = $this->get('pdo');
+    $url = mb_strtolower($urls['url']['name']);
+    $parsedUrl = parse_url($url);
+    $name = "{$parsedUrl['scheme']}://{$parsedUrl['host']}";
 
-        $query = "SELECT name FROM urls WHERE name = ?";
+    $createdAt = Carbon::now();
+
+    $query = "SELECT name FROM urls WHERE name = ?";
+    $statement = $pdo->prepare($query);
+    $statement->execute([$name]);
+    $existedUrl = $statement->fetchAll();
+
+    if ($existedUrl) {
+        $query = "SELECT id FROM urls WHERE name = ?";
         $statement = $pdo->prepare($query);
         $statement->execute([$name]);
-        $existedUrl = $statement->fetchAll();
+        $existedUrlId = $statement->fetchColumn();
 
-        if ($existedUrl) {
-            $query = "SELECT id FROM urls WHERE name = ?";
-            $statement = $pdo->prepare($query);
-            $statement->execute([$name]);
-            $existedUrlId = $statement->fetchColumn();
-
-            $this->get('flash')->addMessage('success', 'Страница уже существует');
-            return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $existedUrlId]));
-        }
-
-        $query = "INSERT INTO urls (name, created_at) VALUES (?, ?)";
-        $statement = $pdo->prepare($query);
-        $statement->execute([$name, $createdAt]);
-        $lastId = $pdo->lastInsertId();
-
-        $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
-        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $lastId]));
-    } catch (PDOException $e) {
-        echo $e->getMessage();
+        $this->get('flash')->addMessage('success', 'Страница уже существует');
+        return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $existedUrlId]));
     }
+
+    $query = "INSERT INTO urls (name, created_at) VALUES (?, ?)";
+    $statement = $pdo->prepare($query);
+    $statement->execute([$name, $createdAt]);
+    $lastId = $pdo->lastInsertId();
+
+    $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
+    return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $lastId]));
 });
 
 $app->get('/urls/{id:[0-9]+}', function ($request, $response, $args) {
