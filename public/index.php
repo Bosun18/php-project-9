@@ -211,16 +211,43 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, $args)
     return $response->withRedirect($this->get('router')->urlFor('show', ['id' => $urlId]));
 });
 
+//$app->get('/urls', function ($request, $response) {
+//    $pdo = $this->get('pdo');
+//    $query = 'SELECT urls.id, urls.name, url_checks.status_code, MAX (url_checks.created_at) AS created_at
+//        FROM urls
+//        LEFT OUTER JOIN url_checks ON url_checks.url_id = urls.id
+//        GROUP BY url_checks.url_id, urls.id, url_checks.status_code
+//        ORDER BY urls.id DESC';
+//    $dataToShow = $pdo->query($query)->fetchAll();
+//
+//    return $this->get('renderer')->render($response, 'urls.phtml', ['urls' => $dataToShow]);
+//})->setName('urls');
+
 $app->get('/urls', function ($request, $response) {
     $pdo = $this->get('pdo');
-    $query = 'SELECT urls.id, urls.name, url_checks.status_code, MAX (url_checks.created_at) AS created_at 
-        FROM urls 
-        LEFT OUTER JOIN url_checks ON url_checks.url_id = urls.id 
-        GROUP BY url_checks.url_id, urls.id, url_checks.status_code 
-        ORDER BY urls.id DESC';
-    $dataToShow = $pdo->query($query)->fetchAll();
 
-    return $this->get('renderer')->render($response, 'urls.phtml', ['urls' => $dataToShow]);
+    $query = 'SELECT id, name FROM urls ORDER BY id DESC';
+
+    $urlsData = $pdo->query($query)->fetchAll();
+
+    $queryCheck = 'SELECT
+                        DISTINCT ON (url_id) url_id, created_at, status_code
+                        FROM url_checks
+                        ORDER BY url_id, created_at DESC;';
+
+    $urlChecksData = $pdo->query($queryCheck)->fetchAll();
+
+    $urlChecks = collect((array) $urlChecksData)->keyBy('url_id');
+    $data = collect((array) $urlsData);
+
+    $dataToShow = $data->map(function ($url) use ($urlChecks) {
+        return array_merge($url, $urlChecks->get($url['id'], []));
+    })->all();
+
+    $params = [
+        'urls' => $dataToShow
+    ];
+    return $this->get('renderer')->render($response, "urls.phtml", $params);
 })->setName('urls');
 
 $app->run();
